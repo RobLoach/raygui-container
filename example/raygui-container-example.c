@@ -39,31 +39,42 @@ int main(void)
     const int screenWidth = 800;
     const int screenHeight = 450;
 
-    InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
+    InitWindow(screenWidth, screenHeight, "raygui-container example");
+    SetTargetFPS(30);
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 32);
 
     // Create the GUI
     GuiContainer gui = InitGuiContainer();
-    GuiElement* newGame = AddGuiButton(gui, (Rectangle){ 30, 30, 125, 30 }, "New Game");
-    GuiElement* loadGame = AddGuiButton(gui, (Rectangle){ 30, 70, 125, 30 }, "Load Game");
-    GuiElement* exit = AddGuiButton(gui, (Rectangle){ 30, 110, 125, 30 }, "Exit");
+    GuiElement* newGame = AddGuiButton(gui, (Rectangle){ 20, 20, 250, 60 }, "New Game");
+    GuiElement* loadGame = AddGuiButton(gui, (Rectangle){ 20, 90, 250, 60 }, "Load Game");
+    GuiElement* exit = AddGuiButton(gui, (Rectangle){ 20, 160, 250, 60 }, "Exit");
+    GuiElement* options = AddGuiButton(gui, (Rectangle){ 280, 90, 250, 60 }, "Options");
+    GuiElement* highscores = AddGuiButton(gui, (Rectangle){ 540, 90, 250, 60 }, "Highscores");
+    GuiElement* showFPS = AddCheckBox(gui, (Rectangle){ 20, 360, 60, 60 }, "Show FPS", false);
+
     const char* message = "Use the keyboard to handle input. Arrows/Enter";
     //--------------------------------------------------------------------------------------
 
-    // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
+    while (!WindowShouldClose())
     {
         // Update the GUI
         UpdateGuiContainer(&gui);
 
         // Check Button States
         if (IsGuiButtonPressed(gui, newGame)) {
-            message = "New Game! This should start a new game.";
+            message = "Pressed the New Game button!";
         }
         if (IsGuiButtonPressed(gui, loadGame)) {
-            message = "Load Game! This will load the game.";
+            message = "Now Loading the Game";
         }
         if (IsGuiButtonPressed(gui, exit)) {
             message = "Exit time... Bye bye!";
+        }
+        if (IsGuiButtonPressed(gui, options)) {
+            message = "Options Time";
+        }
+        if (IsGuiButtonPressed(gui, highscores)) {
+            message = "Show Highscores";
         }
 
         // Draw
@@ -72,7 +83,12 @@ int main(void)
 
             ClearBackground(RAYWHITE);
 
-            DrawText(message, 190, 200, 20, DARKGRAY);
+            DrawText(message, 190, 300, 20, DARKGRAY);
+
+            // Check the High Resolution check box
+            if (IsGuiCheckBoxChecked(gui, showFPS)) {
+                DrawFPS(20, 0);
+            }
 
             // Draw the GUI
             DrawGuiContainer(gui);
