@@ -40,8 +40,8 @@ void UnloadGuiContainer(GuiContainer container);
 void UpdateGuiContainer(GuiContainer* container);
 GuiElement* AddGuiButton(GuiContainer container, Rectangle bounds, const char* text);
 GuiElement* AddCheckBox(GuiContainer container, Rectangle bounds, const char* text, bool checked);
-bool IsGuiButtonPressed(GuiContainer container, GuiElement* element);
-bool IsGuiCheckBoxChecked(GuiContainer container, GuiElement* element);
+bool IsGuiButtonPressed(GuiElement* element);
+bool IsGuiCheckBoxChecked(GuiElement* element);
 
 #if defined(__cplusplus)
 }            // Prevents name mangling of functions
@@ -99,6 +99,7 @@ bool IsGuiElementPressed(GuiContainer* container, GuiElement* element) {
             return true;
         }
     }
+    return false;
 }
 
 void SetNextActiveGuiElement(GuiContainer* container, int direction) {
@@ -219,12 +220,13 @@ void UpdateGuiContainer(GuiContainer* container) {
     // Update the state of any elements.
     switch (container->activeElement->controlType) {
         case CHECKBOX:
+            // Toggle the checkbox if pressed.
             if (IsGuiElementPressed(container, container->activeElement)) {
                 container->activeElement->stateBool = !container->activeElement->stateBool;
             }
             break;
         case BUTTON:
-            // Nothing. The state is checked with IsGuiButtonPressed()
+            container->activeElement->stateBool = IsGuiElementPressed(container, container->activeElement);
             break;
     }
 }
@@ -253,6 +255,7 @@ GuiElement* AddGuiButton(GuiContainer container, Rectangle bounds, const char* t
     element.bounds = bounds;
     element.text = text;
     element.controlType = BUTTON;
+    element.stateBool = false;
     return AddElement(&container, element);
 }
 
@@ -289,11 +292,11 @@ void DrawGuiContainer(GuiContainer container) {
     }
 }
 
-bool IsGuiButtonPressed(GuiContainer container, GuiElement* element) {
-    return IsGuiElementPressed(&container, element);
+bool IsGuiButtonPressed(GuiElement* element) {
+    return element->stateBool;
 }
 
-bool IsGuiCheckBoxChecked(GuiContainer container, GuiElement* element) {
+bool IsGuiCheckBoxChecked(GuiElement* element) {
     return element->stateBool;
 }
 

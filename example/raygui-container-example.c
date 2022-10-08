@@ -61,19 +61,19 @@ int main(void)
         UpdateGuiContainer(&gui);
 
         // Check Button States
-        if (IsGuiButtonPressed(gui, newGame)) {
+        if (IsGuiButtonPressed(newGame)) {
             message = "Pressed the New Game button!";
         }
-        if (IsGuiButtonPressed(gui, loadGame)) {
+        if (IsGuiButtonPressed(loadGame)) {
             message = "Now Loading the Game";
         }
-        if (IsGuiButtonPressed(gui, exit)) {
+        if (IsGuiButtonPressed(exit)) {
             message = "Exit time... Bye bye!";
         }
-        if (IsGuiButtonPressed(gui, options)) {
+        if (IsGuiButtonPressed(options)) {
             message = "Options Time";
         }
-        if (IsGuiButtonPressed(gui, highscores)) {
+        if (IsGuiButtonPressed(highscores)) {
             message = "Show Highscores";
         }
 
@@ -86,7 +86,7 @@ int main(void)
             DrawText(message, 190, 300, 20, DARKGRAY);
 
             // Check the High Resolution check box
-            if (IsGuiCheckBoxChecked(gui, showFPS)) {
+            if (IsGuiCheckBoxChecked(showFPS)) {
                 DrawFPS(20, 0);
             }
 
