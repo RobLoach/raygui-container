@@ -1,6 +1,6 @@
 /**
  * raygui-container
- * 
+ *
  * Dependencies:
  *   - raylib
  *   - raygui
@@ -12,9 +12,6 @@
 #if defined(__cplusplus)
 extern "C" {            // Prevents name mangling of functions
 #endif
-
-// TODO: Switch to a better memory management system.
-#define RAYGUI_CONTAINER_MAX_ELEMENTS 100
 
 typedef struct GuiElement {
     GuiControl controlType;
@@ -40,8 +37,8 @@ void UnloadGuiContainer(GuiContainer container);
 void UpdateGuiContainer(GuiContainer* container);
 GuiElement* AddGuiButton(GuiContainer container, Rectangle bounds, const char* text);
 GuiElement* AddCheckBox(GuiContainer container, Rectangle bounds, const char* text, bool checked);
-bool IsGuiButtonPressed(GuiContainer container, GuiElement* element);
-bool IsGuiCheckBoxChecked(GuiContainer container, GuiElement* element);
+bool IsGuiButtonPressed(GuiElement* element);
+bool IsGuiCheckBoxChecked(GuiElement* element);
 
 #if defined(__cplusplus)
 }            // Prevents name mangling of functions
@@ -57,18 +54,25 @@ bool IsGuiCheckBoxChecked(GuiContainer container, GuiElement* element);
 extern "C" {            // Prevents name mangling of functions
 #endif
 
-#include <math.h> // sqrtf
+#ifndef RAYGUI_CONTAINER_SQRTF
+#include <math.h>
+#define RAYGUI_CONTAINER_SQRTF sqrtf
+#endif
+
+// TODO: Switch to a better memory management system.
+#ifndef RAYGUI_CONTAINER_MAX_ELEMENTS
+#define RAYGUI_CONTAINER_MAX_ELEMENTS 100
+#endif
 
 GuiContainer InitGuiContainer() {
-    GuiContainer container = (GuiContainer){};
+    GuiContainer container;
     container.elements = (struct GuiElement*)MemAlloc(RAYGUI_CONTAINER_MAX_ELEMENTS * sizeof(struct GuiElement));
     container.activeElement = container.elements;
     return container;
 }
 
 Vector2 GetGuiElementCenter(GuiElement* element) {
-    Rectangle bounds = element->bounds;
-    return (Vector2){bounds.x + bounds.width / 2, bounds.y + bounds.height / 2};
+    return (Vector2){element->bounds.x + element->bounds.width / 2, element->bounds.y + element->bounds.height / 2};
 }
 
 bool IsGuiElementSelectable(GuiElement* element) {
@@ -77,6 +81,7 @@ bool IsGuiElementSelectable(GuiElement* element) {
         case CHECKBOX:
             return true;
     }
+
     return false;
 }
 
@@ -99,6 +104,8 @@ bool IsGuiElementPressed(GuiContainer* container, GuiElement* element) {
             return true;
         }
     }
+
+    return false;
 }
 
 void SetNextActiveGuiElement(GuiContainer* container, int direction) {
@@ -123,41 +130,52 @@ void SetNextActiveGuiElement(GuiContainer* container, int direction) {
         }
 
         // Determine if the element is in the desired direction.
-        bool checkIt = false;
+        bool inCorrectDirection = false;
         switch (direction) {
             case UP:
-                checkIt = current->bounds.y < active->bounds.y;
+                inCorrectDirection = current->bounds.y < active->bounds.y;
                 break;
             case DOWN:
-                checkIt = current->bounds.y > active->bounds.y;
+                inCorrectDirection = current->bounds.y > active->bounds.y;
                 break;
             case LEFT:
-                checkIt = current->bounds.x < active->bounds.x;
+                inCorrectDirection = current->bounds.x < active->bounds.x;
                 break;
             case RIGHT:
-                checkIt = current->bounds.x > active->bounds.x;
+                inCorrectDirection = current->bounds.x > active->bounds.x;
                 break;
         }
-        if (!checkIt) {
+
+        // The element id not in the desired direction.
+        if (!inCorrectDirection) {
             continue;
         }
 
         // Find the closest element, based on the magnitude of the center of the elements.
         Vector2 currentCenter = GetGuiElementCenter(current);
         Vector2 distance = (Vector2){activeCenter.x - currentCenter.x, activeCenter.y - currentCenter.y};
-        float currentDistance = sqrtf(distance.x * distance.x + distance.y * distance.y);
+        float currentDistance = RAYGUI_CONTAINER_SQRTF(distance.x * distance.x + distance.y * distance.y);
+
+        // Ensure the compared distances are based on their absolute value.
+        if (currentDistance < 0) {
+            currentDistance *= -1.0f;
+        }
+
+        // If the current distance is shorter, set it as the new target.
         if (currentDistance < targetDistance) {
             target = current;
             targetDistance = currentDistance;
         }
     }
 
+    // Switch the active element to the new target.
     if (target != NULL) {
         container->activeElement = target;
     }
 }
 
 void UpdateGuiContainer(GuiContainer* container) {
+    // TODO: Support for multiple gamepads
     if (IsKeyPressed(KEY_UP) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
         SetNextActiveGuiElement(container, UP);
         return;
@@ -190,7 +208,7 @@ void UpdateGuiContainer(GuiContainer* container) {
         }
     }
 
-    // Allow Tab Indexing
+    // Tab Indexing
     if (IsKeyPressed(KEY_TAB)) {
         // Find the index of active element.
         int index = -1;
@@ -219,12 +237,13 @@ void UpdateGuiContainer(GuiContainer* container) {
     // Update the state of any elements.
     switch (container->activeElement->controlType) {
         case CHECKBOX:
+            // Toggle the checkbox if pressed.
             if (IsGuiElementPressed(container, container->activeElement)) {
                 container->activeElement->stateBool = !container->activeElement->stateBool;
             }
             break;
         case BUTTON:
-            // Nothing. The state is checked with IsGuiButtonPressed()
+            container->activeElement->stateBool = IsGuiElementPressed(container, container->activeElement);
             break;
     }
 }
@@ -253,6 +272,7 @@ GuiElement* AddGuiButton(GuiContainer container, Rectangle bounds, const char* t
     element.bounds = bounds;
     element.text = text;
     element.controlType = BUTTON;
+    element.stateBool = false;
     return AddElement(&container, element);
 }
 
@@ -289,11 +309,11 @@ void DrawGuiContainer(GuiContainer container) {
     }
 }
 
-bool IsGuiButtonPressed(GuiContainer container, GuiElement* element) {
-    return IsGuiElementPressed(&container, element);
+bool IsGuiButtonPressed(GuiElement* element) {
+    return element->stateBool;
 }
 
-bool IsGuiCheckBoxChecked(GuiContainer container, GuiElement* element) {
+bool IsGuiCheckBoxChecked(GuiElement* element) {
     return element->stateBool;
 }
 
