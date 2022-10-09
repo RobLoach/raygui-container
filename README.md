@@ -30,10 +30,10 @@ int main(void) {
         UpdateGuiContainer(&gui);
 
         // Check Button States
-        if (IsGuiButtonPressed(gui, newGame)) {
+        if (IsGuiButtonPressed(newGame)) {
             message = "Pressed the New Game button!";
         }
-        if (IsGuiButtonPressed(gui, loadGame)) {
+        if (IsGuiButtonPressed(loadGame)) {
             message = "Now Loading the Game";
         }
 
@@ -63,8 +63,8 @@ GuiContainer InitGuiContainer();
 GuiElement* AddGuiButton(GuiContainer container, Rectangle bounds, const char* text);
 GuiElement* AddCheckBox(GuiContainer container, Rectangle bounds, const char* text, bool checked);
 void UpdateGuiContainer(GuiContainer* container);
-bool IsGuiButtonPressed(GuiContainer container, GuiElement* element);
-bool IsGuiCheckBoxChecked(GuiContainer container, GuiElement* element);
+bool IsGuiButtonPressed(GuiElement* element);
+bool IsGuiCheckBoxChecked(GuiElement* element);
 void UnloadGuiContainer(GuiContainer container);
 ```
 
