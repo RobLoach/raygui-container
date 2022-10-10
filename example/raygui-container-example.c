@@ -51,6 +51,7 @@ int main(void)
     GuiElement* options = AddGuiButton(gui, (Rectangle){ 280, 90, 250, 60 }, "Options");
     GuiElement* highscores = AddGuiButton(gui, (Rectangle){ 540, 90, 250, 60 }, "Highscores");
     GuiElement* showFPS = AddCheckBox(gui, (Rectangle){ 20, 360, 60, 60 }, "Show FPS", false);
+    GuiElement* slider = AddSlider(gui, (Rectangle){ screenWidth - 300, 200, 150, 30 }, "Less", "More", 30, 0, 100);
 
     const char* message = "Use the keyboard to handle input. Arrows/Enter";
     //--------------------------------------------------------------------------------------
