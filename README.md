@@ -22,7 +22,7 @@ int main(void) {
     GuiContainer gui = InitGuiContainer();
     GuiElement* newGame = AddGuiButton(gui, (Rectangle){ 20, 20, 250, 60 }, "New Game");
     GuiElement* loadGame = AddGuiButton(gui, (Rectangle){ 20, 90, 250, 60 }, "Load Game");
-    
+
     const char* message = "Use the keyboard to handle input. Arrows/Enter";
 
     while (!WindowShouldClose()) {
@@ -55,6 +55,38 @@ int main(void) {
     return 0;
 }
 ```
+
+## Features
+
+The following controls can be handled through GuiContainers:
+
+- [ ] WindowBox
+- [ ] GroupBox
+- [ ] Line
+- [ ] Panel
+- [ ] ScrollPanel
+- [ ] Label
+- [x] Button
+- [ ] LabelButton
+- [ ] Toggle
+- [ ] ToggleGroup
+- [x] CheckBox
+- [ ] ComboBox
+- [ ] DropdownBox
+- [ ] TextBox
+- [ ] TextBoxMulti
+- [ ] ValueBox
+- [ ] Spinner
+- [x] Slider
+- [ ] SliderBar
+- [ ] ProgressBar
+- [ ] StatusBar
+- [ ] DummyRec
+- [ ] Grid
+- [ ] ListView
+- [ ] ColorPicker
+- [ ] MessageBox
+- [ ] TextInputBox
 
 ## API
 

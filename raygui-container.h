@@ -17,12 +17,17 @@ typedef struct GuiElement {
     GuiControl controlType;
     Rectangle bounds;
     const char *text;
+    const char *text2;
     bool stateBool;
+    float stateFloat1;
+    float stateFloat2;
+    float stateFloat3;
 } GuiElement;
 
 typedef struct GuiContainer {
     GuiElement* elements;
     GuiElement* activeElement;
+    bool focusLocked;
 } GuiContainer;
 
 enum GuiDirection {
@@ -37,8 +42,10 @@ void UnloadGuiContainer(GuiContainer container);
 void UpdateGuiContainer(GuiContainer* container);
 GuiElement* AddGuiButton(GuiContainer container, Rectangle bounds, const char* text);
 GuiElement* AddCheckBox(GuiContainer container, Rectangle bounds, const char* text, bool checked);
+GuiElement* AddSlider(GuiContainer container, Rectangle bounds, const char* textLeft, const char* textRight, float value, float minValue, float maxValue);
 bool IsGuiButtonPressed(GuiElement* element);
 bool IsGuiCheckBoxChecked(GuiElement* element);
+float GetGuiSliderValue(GuiElement* element);
 
 #if defined(__cplusplus)
 }            // Prevents name mangling of functions
@@ -68,6 +75,7 @@ GuiContainer InitGuiContainer() {
     GuiContainer container;
     container.elements = (struct GuiElement*)MemAlloc(RAYGUI_CONTAINER_MAX_ELEMENTS * sizeof(struct GuiElement));
     container.activeElement = container.elements;
+    container.focusLocked = false;
     return container;
 }
 
@@ -79,6 +87,7 @@ bool IsGuiElementSelectable(GuiElement* element) {
     switch (element->controlType) {
         case BUTTON:
         case CHECKBOX:
+        case SLIDER:
             return true;
     }
 
@@ -171,10 +180,63 @@ void SetNextActiveGuiElement(GuiContainer* container, int direction) {
     // Switch the active element to the new target.
     if (target != NULL) {
         container->activeElement = target;
+        container->focusLocked = false;
     }
 }
 
 void UpdateGuiContainer(GuiContainer* container) {
+    // Update the state of any elements.
+    switch (container->activeElement->controlType) {
+        case CHECKBOX:
+            // Toggle the checkbox if pressed.
+            if (IsGuiElementPressed(container, container->activeElement)) {
+                container->activeElement->stateBool = !container->activeElement->stateBool;
+            }
+            break;
+        case BUTTON:
+            container->activeElement->stateBool = IsGuiElementPressed(container, container->activeElement);
+            break;
+        case SLIDER:
+            // Slider requires interaction, so we use a focus lock to determine its input behavior.
+            if (container->focusLocked) {
+                // Allow un-focus locking.
+                if (IsGuiElementPressed(container, container->activeElement)) {
+                    container->focusLocked = false;
+                    break;
+                }
+
+                // Move left/right by 5% of the slider.
+                float amount = (container->activeElement->stateFloat3 - container->activeElement->stateFloat2) * 0.05f;
+
+                // Move the slider left/right.
+                if (IsKeyPressed(KEY_LEFT)) {
+                    container->activeElement->stateFloat1 -= amount;
+                }
+                else if (IsKeyPressed(KEY_RIGHT)) {
+                    container->activeElement->stateFloat1 += amount;
+                }
+
+                // Keep the slider value in the min/max bounds.
+                if (container->activeElement->stateFloat1 < container->activeElement->stateFloat2) {
+                    container->activeElement->stateFloat1 = container->activeElement->stateFloat2;
+                }
+                else if (container->activeElement->stateFloat1 > container->activeElement->stateFloat3) {
+                    container->activeElement->stateFloat1 = container->activeElement->stateFloat3;
+                }
+            }
+            else {
+                if (IsGuiElementPressed(container, container->activeElement)) {
+                    container->focusLocked = true;
+                }
+            }
+            break;
+    }
+
+    // Don't switch element if the user is actively
+    if (container->focusLocked) {
+        return;
+    }
+
     // TODO: Support for multiple gamepads
     if (IsKeyPressed(KEY_UP) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
         SetNextActiveGuiElement(container, UP);
@@ -233,19 +295,6 @@ void UpdateGuiContainer(GuiContainer* container) {
             container->activeElement = container->elements;
         }
     }
-
-    // Update the state of any elements.
-    switch (container->activeElement->controlType) {
-        case CHECKBOX:
-            // Toggle the checkbox if pressed.
-            if (IsGuiElementPressed(container, container->activeElement)) {
-                container->activeElement->stateBool = !container->activeElement->stateBool;
-            }
-            break;
-        case BUTTON:
-            container->activeElement->stateBool = IsGuiElementPressed(container, container->activeElement);
-            break;
-    }
 }
 
 void UnloadGuiContainer(GuiContainer container) {
@@ -260,6 +309,10 @@ GuiElement* AddElement(GuiContainer* container, GuiElement element) {
             current->controlType = element.controlType;
             current->stateBool = element.stateBool;
             current->text = element.text;
+            current->text2 = element.text2;
+            current->stateFloat1 = element.stateFloat1;
+            current->stateFloat2 = element.stateFloat2;
+            current->stateFloat3 = element.stateFloat3;
             return current;
         }
     }
@@ -285,13 +338,31 @@ GuiElement* AddCheckBox(GuiContainer container, Rectangle bounds, const char* te
     return AddElement(&container, element);
 }
 
+GuiElement* AddSlider(GuiContainer container, Rectangle bounds, const char* textLeft, const char* textRight, float value, float minValue, float maxValue) {
+    GuiElement element;
+    element.bounds = bounds;
+    element.text = textLeft;
+    element.text2 = textRight;
+    element.controlType = SLIDER;
+    element.stateFloat1 = value;
+    element.stateFloat2 = minValue;
+    element.stateFloat3 = maxValue;
+    return AddElement(&container, element);
+}
+
 void DrawGuiContainer(GuiContainer container) {
     for (int i = 0; i < RAYGUI_CONTAINER_MAX_ELEMENTS; i++) {
         GuiElement* element = container.elements + i;
 
         // Flip raygui's GUI focus state based on the active element.
         if (container.activeElement == element) {
-            guiState = STATE_FOCUSED;
+            // If we're focus locked, use the pressed state.
+            if (container.focusLocked) {
+                guiState = STATE_PRESSED;
+            }
+            else {
+                guiState = STATE_FOCUSED;
+            }
         }
         else {
             guiState = STATE_NORMAL;
@@ -303,7 +374,10 @@ void DrawGuiContainer(GuiContainer container) {
                 GuiButton(element->bounds, element->text);
                 break;
             case CHECKBOX:
-                GuiCheckBox(element->bounds, element->text, element->stateBool);
+                element->stateBool = GuiCheckBox(element->bounds, element->text, element->stateBool);
+                break;
+            case SLIDER:
+                GuiSlider(element->bounds, element->text, element->text2, element->stateFloat1, element->stateFloat2, element->stateFloat3);
                 break;
         }
     }
@@ -315,6 +389,10 @@ bool IsGuiButtonPressed(GuiElement* element) {
 
 bool IsGuiCheckBoxChecked(GuiElement* element) {
     return element->stateBool;
+}
+
+float GetGuiSliderValue(GuiElement* element) {
+    return element->stateFloat1;
 }
 
 #if defined(__cplusplus)
